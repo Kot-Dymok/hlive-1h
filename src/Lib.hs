@@ -18,7 +18,7 @@ data Game = Game {
 
 
 checkBounds :: Int -> Int -> Int
-checkBounds x lx | x > lx = x - lx
+checkBounds x lx | x >= lx = x - lx
                  | x < 0 = lx + x
                  | otherwise = x
 

@@ -22,8 +22,9 @@ setup window = void $ do
     defaultLengthX = 5 -- defaultWidth `div` scaleFactor
     defaultLengthY = 5 -- defaultHeight `div` scaleFactor
     defaultTimerStep = ceiling $ 0.1 * 1000 -- in ms
-    defaultGrid = replicate defaultLengthX $ replicate defaultLengthY False 
-    defaultGame = Game defaultGrid [3] [2, 3]
+    defaultGrid = replicate defaultLengthX $ replicate defaultLengthY False
+    defaultRule = "B3/S23"
+    defaultGame = let (b,s) = parseRules defaultRule in Game defaultGrid b s
 
   canvas       <- UI.canvas
                   # set UI.width  defaultWidth
@@ -33,12 +34,13 @@ setup window = void $ do
   activate     <- UI.button #+ [string "Run/Pause"]
   nX           <- UI.input  # set value (show defaultLengthX)
   nY           <- UI.input  # set value (show defaultLengthY)
+  rule         <- UI.input  # set value defaultRule
   changeX      <- UI.input  # set value (show 0)
   changeY      <- UI.input  # set value (show 0)
   changeValue  <- UI.input  # set value (show False)
   changeButton <- UI.button #+ [string "Cnange"]
   clearCanvas  <- UI.button #+ [string "Clear the canvas."]
-  clearGrid    <- UI.button #+ [string "Clear the grid."]
+  clearGrid    <- UI.button #+ [string "Set rule and clear the grid."]
 
   getBody window #+
     [ row [
@@ -47,6 +49,9 @@ setup window = void $ do
                ],
         column [ row [string "Rows:" # set style [("width","60px")], element nY]
                , row [string "Columns:" # set style [("width","60px")], element nX]
+               ],
+        column [ row [string "Rule" # set style [("width","60px")], element rule]
+               , element clearGrid
                ],
         column [ row [string "X" # set style [("width","60px")], element changeX]
                , row [string "Y" # set style [("width","60px")], element changeY]
@@ -59,31 +64,35 @@ setup window = void $ do
     ]
   UI.start timer
 
-  nXValue <- stepper "" $ UI.valueChange nX
-  nYValue <- stepper "" $ UI.valueChange nY
-  changeXValue <- stepper "" $ UI.valueChange changeX
-  changeYValue <- stepper "" $ UI.valueChange changeY
-  changeVValue <- stepper "" $ UI.valueChange changeValue
+  nXValue <- stepper (show defaultLengthX) $ UI.valueChange nX
+  nYValue <- stepper (show defaultLengthY) $ UI.valueChange nY
+  ruleValue <- stepper defaultRule $ UI.valueChange rule
+  changeXValue <- stepper "0" $ UI.valueChange changeX
+  changeYValue <- stepper "0" $ UI.valueChange changeY
+  changeVValue <- stepper "False" $ UI.valueChange changeValue
   -- mousePosition <- stepper (0, 0) $ UI.mousemove canvas
 
   isActive <- accumB False (not <$ UI.click activate)
   let
     xyvValues = liftA3 (\x y v -> (x, y, v)) changeXValue changeYValue changeVValue
-    nXYValues = liftA2 (\x y -> (x, y)) nXValue nYValue
+    nXYRValues = liftA3 (\x y r -> (x, y, r)) nXValue nYValue ruleValue
     changeGrid = (\(x, y, v) g -> setValue g (read x) (read y) (read v)) <$> xyvValues <@ (UI.click changeButton)
     clearBehaviour :: UI.Event (Game -> Game)
-    clearBehaviour = (\(nx, ny) g -> g {Lib.grid = replicate (read nx) $ replicate (read ny) False}) <$> nXYValues <@ (UI.click clearGrid)
+    clearBehaviour = (\(nx, ny, v) g ->
+                        let (b,s) = parseRules $ traceShowId v in
+                          Game (replicate (read nx) $ replicate (read ny) False) b s) <$> nXYRValues <@ (UI.click clearGrid)
     getBin :: (Int, Int) -> (Int, Int) -> Game -> (Int, Int)
     getBin (mx, my) (w, h) (Game g _ _) = (x, y)
       where
-        w' = length g
+        w' = traceShowId $ length g
         h' = length $ head g
         x = floor $ fromIntegral w / fromIntegral mx * fromIntegral w'
         y = floor $ fromIntegral h / fromIntegral my * fromIntegral h'
 
     mouseChange :: UI.Event (Game -> Game)
-    mouseChange = (\xy g -> let (x', y') = getBin xy (defaultWidth, defaultHeight) g in traceShow (x', y', g) $ revertValue g x' y') <$> (UI.mousedown clearGrid)
-    doAutoStep = whenE isActive $ step . traceShowId <$ (UI.tick  timer)
+    -- mouseChange = (\xy g -> let (x', y') = getBin xy (defaultWidth, defaultHeight) g in traceShow (x', y', g) $ revertValue g x' y') <$> (UI.mousedown canvas)
+    mouseChange = (\xy g -> traceShow xy $ g) <$> (UI.mousedown canvas)
+    doAutoStep = whenE isActive $ step <$ (UI.tick timer)
 
     unionWith' :: [UI.Event a] -> UI.Event a
     unionWith' [] = undefined
@@ -100,7 +109,7 @@ setup window = void $ do
 showGameGrid :: UI.Element -> Int -> Int -> Game -> UI ()
 showGameGrid canvas w h (Game g _ _) = forM_ fieldAsList (writeRect canvas) 
   where
-    w' = length g
+    w' = traceShow g $ length g
     h' = length $ head g
     ceilW = fromIntegral w / fromIntegral w'
     ceilH = fromIntegral h / fromIntegral h'
