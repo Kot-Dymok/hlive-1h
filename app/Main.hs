@@ -44,21 +44,16 @@ setup window = void $ do
 
   getBody window #+
     [ row [
-        column [ element clearCanvas
-               , element activate
+        column [ element clearCanvas, element activate ],
+        column [ string "Rows:" , string "Columns:" ],
+        column [ element nY, element nX ],
+        column [ string "Rule:"],
+        column [ element rule, element clearGrid ],
+        column [ row [string "X", element changeX]
+               , row [string "Y", element changeY]
                ],
-        column [ row [string "Rows:" # set style [("width","60px")], element nY]
-               , row [string "Columns:" # set style [("width","60px")], element nX]
-               ],
-        column [ row [string "Rule" # set style [("width","60px")], element rule]
-               , element clearGrid
-               ],
-        column [ row [string "X" # set style [("width","60px")], element changeX]
-               , row [string "Y" # set style [("width","60px")], element changeY]
-               ],
-        column [ row [string "Value" # set style [("width","60px")], element changeValue]
-               , element changeButton
-               ]
+        column [ string "Value:"],
+        column [ element changeValue, element changeButton ]
         ],
         element canvas
     ]
