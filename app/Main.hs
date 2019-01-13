@@ -6,7 +6,7 @@ import Control.Monad
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
 
-import Debug.Trace
+-- import Debug.Trace
 
 main :: IO ()
 main = do
@@ -19,9 +19,9 @@ setup window = void $ do
     defaultHeight = 550
     defaultWidth  = defaultHeight * 2
     scaleFactor = 10
-    defaultLengthX = 5 -- defaultWidth `div` scaleFactor
-    defaultLengthY = 5 -- defaultHeight `div` scaleFactor
-    defaultTimerStep = ceiling $ 0.1 * 1000 -- in ms
+    defaultLengthX = defaultWidth `div` scaleFactor
+    defaultLengthY = defaultHeight `div` scaleFactor
+    defaultTimerStep = ceiling $ 0.01 * 1000 -- in ms
     defaultGrid = replicate defaultLengthX $ replicate defaultLengthY False
     defaultRule = "B3/S23"
     defaultGame = let (b,s) = parseRules defaultRule in Game defaultGrid b s
@@ -79,19 +79,21 @@ setup window = void $ do
     changeGrid = (\(x, y, v) g -> setValue g (read x) (read y) (read v)) <$> xyvValues <@ (UI.click changeButton)
     clearBehaviour :: UI.Event (Game -> Game)
     clearBehaviour = (\(nx, ny, v) g ->
-                        let (b,s) = parseRules $ traceShowId v in
-                          Game (replicate (read nx) $ replicate (read ny) False) b s) <$> nXYRValues <@ (UI.click clearGrid)
+                        let (b,s) = parseRules v
+                        in Game (replicate (read nx) $ replicate (read ny) False) b s) <$> nXYRValues <@ (UI.click clearGrid)
     getBin :: (Int, Int) -> (Int, Int) -> Game -> (Int, Int)
     getBin (mx, my) (w, h) (Game g _ _) = (x, y)
       where
-        w' = traceShowId $ length g
+        w' = length g
         h' = length $ head g
-        x = floor $ fromIntegral w / fromIntegral mx * fromIntegral w'
-        y = floor $ fromIntegral h / fromIntegral my * fromIntegral h'
+        x = floor $ fromIntegral mx / fromIntegral w * fromIntegral w'
+        y = floor $ fromIntegral my / fromIntegral h * fromIntegral h'
 
     mouseChange :: UI.Event (Game -> Game)
-    -- mouseChange = (\xy g -> let (x', y') = getBin xy (defaultWidth, defaultHeight) g in traceShow (x', y', g) $ revertValue g x' y') <$> (UI.mousedown canvas)
-    mouseChange = (\xy g -> traceShow xy $ g) <$> (UI.mousedown canvas)
+    mouseChange = (\xy g -> let (x', y') = getBin xy (defaultWidth, defaultHeight) g in revertValue g x' y') <$> (UI.mousedown canvas)
+    -- mouseChange = (\xy g ->
+    --                  let (x', y') = getBin xy (defaultWidth, defaultHeight) g
+    --                  in revertValue g x' y') <$> mousePosition <@ (UI.mousedown canvas)
     doAutoStep = whenE isActive $ step <$ (UI.tick timer)
 
     unionWith' :: [UI.Event a] -> UI.Event a
@@ -109,7 +111,7 @@ setup window = void $ do
 showGameGrid :: UI.Element -> Int -> Int -> Game -> UI ()
 showGameGrid canvas w h (Game g _ _) = forM_ fieldAsList (writeRect canvas) 
   where
-    w' = traceShow g $ length g
+    w' = length g
     h' = length $ head g
     ceilW = fromIntegral w / fromIntegral w'
     ceilH = fromIntegral h / fromIntegral h'
