@@ -104,6 +104,9 @@ setup window = void $ do
   on UI.click clearCanvas $ const $
     canvas # UI.clearCanvas
 
+  on UI.mousedown canvas $ \xy ->
+    print $ xy
+
   onEvent gameChangeEvent (\g -> showGameGrid canvas defaultWidth defaultHeight g)
 
 showGameGrid :: UI.Element -> Int -> Int -> Game -> UI ()
