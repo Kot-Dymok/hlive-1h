@@ -21,6 +21,7 @@ description:         Please see the README on GitHub at <https://github.com/Kot-
 
 dependencies:
 - base >= 4.7 && < 5
+- split
 
 library:
   source-dirs: src
@@ -28,13 +29,14 @@ library:
 executables:
   hlive-1h-exe:
     main:                Main.hs
-    source-dirs:         lib
+    source-dirs:         app
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - hlive-1h
+    - threepenny-gui
 
 tests:
   hlive-1h-test:
