@@ -3,7 +3,8 @@ module Lib
       parseRules,
       step,
       getValue,
-      setValue
+      setValue,
+      revertValue
     ) where
 
 import Data.List.Split
@@ -40,6 +41,10 @@ setValue g x y v = g {grid = g'}
     (beforeX, currX:afterX) = splitAt x' $ grid g
     (beforeY, _:afterY) = splitAt y' currX
     g' = beforeX ++ [beforeY++[v]++afterY] ++ afterX
+
+revertValue :: Game -> Int -> Int -> Game
+revertValue g x y = let v' = not $ getValue g x y in setValue g x y v'
+
 
 nLiveNeighbors :: Game -> Int -> Int -> Int
 nLiveNeighbors g x y = length $ filter id neighs
